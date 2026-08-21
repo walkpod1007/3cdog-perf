@@ -4,4 +4,4 @@ include LICENSE
 include .gitignore
 include pyproject.toml
 recursive-include perf_server *.py
-recursive-include web *.html *.js *.css
+graft perf_server/web

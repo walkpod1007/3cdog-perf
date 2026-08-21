@@ -23,7 +23,7 @@ from typing import List, Optional
 from pathlib import Path
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 def _open_browser_when_ready(url: str, server_ref: list) -> None:
@@ -64,8 +64,21 @@ def _bootstrap_server(args: argparse.Namespace) -> int:
     Doing the import inside a function keeps ``3cdog-perf --version`` snappy
     (no module-resolution side effects) and lets the package's import path
     rules stay as simple as ``python -m perf_server``.
+
+    The onboarding banner is printed first — before ``sessions_dir.mkdir``,
+    ``reap_orphan_collectors``, or the server socket bind — so a non-technical
+    user launching from Homebrew sees an actionable message immediately,
+    even if one of those steps takes a beat. ``url`` is built from ``args``
+    (not the bound socket) so it is ready before any of that work runs; the
+    CLI always passes an explicit host/port, so this matches the server's
+    actual bind address.
     """
     from perf_server import server
+
+    url = "http://{}:{}".format(args.host, args.port)
+    print("✅ 3cdog Perf 已啟動：{}".format(url), flush=True)
+    print("瀏覽器沒自動開的話，把上面的網址複製貼到瀏覽器網址列。", flush=True)
+    print("這個視窗要保持開著（它就是伺服器本體）；要停止請按 Ctrl+C。", flush=True)
 
     sessions_dir = args.sessions_dir
     if sessions_dir is None:
@@ -74,18 +87,16 @@ def _bootstrap_server(args: argparse.Namespace) -> int:
         # ``--sessions-dir`` for ephemeral benches.
         sessions_dir = Path.home() / ".3cdog-perf" / "sessions"
     sessions_dir.mkdir(parents=True, exist_ok=True)
+    print("Sessions 存放於：{}".format(sessions_dir), flush=True)
+
     orphans = server.reap_orphan_collectors()
     if orphans:
         print(
             "reaped {} orphan collector process(es)".format(orphans),
             file=sys.stderr,
+            flush=True,
         )
     httpd = server.make_server(args.host, args.port, sessions_dir)
-    host, port = httpd.server_address[:2]
-    url = "http://{}:{}".format(host, port)
-    print("3cdog Perf UI: {}".format(url))
-    print("Sessions: {}".format(sessions_dir))
-    print("Tip: open the URL above if a browser tab did not open automatically.")
 
     server_box: List[Optional[object]] = [httpd]
     if args.open_browser and sys.platform == "darwin" and os.environ.get("DISPLAY") is None:

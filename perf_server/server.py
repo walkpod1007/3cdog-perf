@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, unquote, urlparse
 
 
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+WEB_DIR = Path(__file__).resolve().parent / "web"
 MAX_CHUNK_LINES = 5000
 MAX_LINE_BYTES = 2 * 1024 * 1024
 
