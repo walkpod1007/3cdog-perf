@@ -19,8 +19,11 @@ iPhone 的錄製本輪**還沒接上**——這版只能顯示 iPhone 是否接�
 打開「終端機」App（Spotlight 搜「Terminal」），貼這行：
 
 ```bash
-brew tap walkpod1007/3cdog && brew install perf-lab && 3cdog-perf
+brew tap walkpod1007/3cdog && brew trust walkpod1007/3cdog && brew install perf-lab && 3cdog-perf
 ```
+
+> 中間的 `brew trust` 是新版 Homebrew 的規定：第三方 tap 第一次用要明確信任一次
+> （舊版 Homebrew 沒有這個指令，跳 `Unknown command` 的話拿掉那段照跑即可）。
 
 跑完會自動打開瀏覽器。如果瀏覽器沒自動跳，把 `http://127.0.0.1:8765`
 貼到瀏覽器網址列就行。

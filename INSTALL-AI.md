@@ -10,7 +10,7 @@
 ## 0. 摘要（給你看的 TL;DR）
 
 - 套件名：`3cdog-perf`
-- 裝法：Homebrew + 公開 tap（`brew tap walkpod1007/3cdog && brew install perf-lab`，或簡寫 `brew install walkpod1007/3cdog/perf-lab`；裝完的指令名仍是 `3cdog-perf`）
+- 裝法：Homebrew + 公開 tap（`brew tap walkpod1007/3cdog && brew trust walkpod1007/3cdog && brew install perf-lab`，或簡寫 `brew install walkpod1007/3cdog/perf-lab`；裝完的指令名仍是 `3cdog-perf`。新版 Homebrew 第三方 tap 需 `brew trust` 一次，舊版無此指令可略過）
 - 啟動：`3cdog-perf`，瀏覽器會自動打開 `http://127.0.0.1:8765`
 - 失敗模式：八成是「線只能充電不能傳資料」或「Android 沒開 USB 偵錯」
 
@@ -48,8 +48,11 @@ brew --version       # Homebrew 版本
 **我要做什麼**：在終端機跑下面這一條，**不要修改**。
 
 ```bash
-brew tap walkpod1007/3cdog && brew install perf-lab
+brew tap walkpod1007/3cdog && brew trust walkpod1007/3cdog && brew install perf-lab
 ```
+
+若跑出 `Error: Unknown command: trust`（舊版 Homebrew 沒有此指令），把 `brew trust …` 那段拿掉重跑。
+反之若略過 trust 出現 `Refusing to load formula … from untrusted tap`，補跑 `brew trust walkpod1007/3cdog` 再 install。
 
 跑完會輸出像：
 
@@ -152,6 +155,8 @@ wait $SERVER_PID 2>/dev/null
 
 | 症狀 | 可能原因 | 修法 |
 |------|----------|------|
+| `Refusing to load formula … from untrusted tap` | 新版 Homebrew 要求信任第三方 tap | `brew trust walkpod1007/3cdog` 後重跑 install |
+| `brew trust` 回 `Unknown command` | 舊版 Homebrew 沒有 trust 指令 | 直接略過 trust 這步照常 install |
 | `brew install` 卡在 `Installing python@3.12` 很久 | 沒現成 bottle，要現編 | 等，或請使用者確認 `/opt/homebrew` 在 SSD |
 | `3cdog-perf --version` 顯示 `command not found` | brew 的 bin 沒進 PATH | 終端機跑 `eval "$(brew shellenv)"`，或重開一個 shell |
 | `curl` 印 `Could not connect to 127.0.0.1 port 18765` | server 沒起來 / 還在啟動 | `sleep 2` 再試；或檢查 `--host` 跟 `--port` |
