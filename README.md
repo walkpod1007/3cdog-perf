@@ -22,8 +22,20 @@ iPhone 的錄製本輪**還沒接上**——這版只能顯示 iPhone 是否接�
 brew tap walkpod1007/3cdog && brew trust walkpod1007/3cdog && brew install perf-lab && 3cdog-perf
 ```
 
-> 中間的 `brew trust` 是新版 Homebrew 的規定：第三方 tap 第一次用要明確信任一次
-> （舊版 Homebrew 沒有這個指令，跳 `Unknown command` 的話拿掉那段照跑即可）。
+> **跑的過程跳紅字？對照下面兩種，都有解：**
+>
+> - 紅字裡有 **`Refusing to load formula`**（不信任的來源）：
+>   這是 Homebrew 在問「這個第三方來源你信不信任」。貼這行回答它：
+>
+>   ```bash
+>   brew trust walkpod1007/3cdog
+>   ```
+>
+>   跑完再把最上面那行安裝指令**整行重貼一次**就會繼續了。
+>
+> - 紅字裡有 **`Unknown command: trust`**：
+>   你的 Homebrew 是舊版，沒有這道關卡。把安裝指令裡的
+>   `brew trust walkpod1007/3cdog && ` 這一段刪掉，其餘照貼就好。
 
 跑完會自動打開瀏覽器。如果瀏覽器沒自動跳，把 `http://127.0.0.1:8765`
 貼到瀏覽器網址列就行。
