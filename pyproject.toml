@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "3cdog-perf"
+version = "0.2.0"
+description = "Local FPS / CPU / GPU / power profiler for iPhone and Android."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "3cdog-perf contributors" },
+]
+keywords = ["android", "ios", "performance", "fps", "profiler"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: MacOS X",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+]
+dependencies = []
+
+[project.scripts]
+# CLI entry point. Matches the binary name Homebrew links into ``bin/``.
+"3cdog-perf" = "perf_server.__main__:main"
+# Internal helper used by the server's record controller for Android capture.
+# Mirrors the role of the old ``android_perf.py`` stub without shipping a
+# script outside the package.
+"3cdog-perf-collect" = "perf_server.collector:main"
+
+[project.urls]
+Homepage = "https://github.com/walkpod1007/3cdog-perf"
+Issues = "https://github.com/walkpod1007/3cdog-perf/issues"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["perf_server*"]

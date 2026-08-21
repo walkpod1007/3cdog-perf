@@ -1,0 +1,28 @@
+# Python build / runtime artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Sessions (recorded data lives outside the repo, in ~/.3cdog-perf/)
+sessions/
+
+# Editor / OS noise
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Agent logs accidentally left in repo root
+mini-agent-*.log

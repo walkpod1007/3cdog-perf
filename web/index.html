@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>3cdog Perf</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <section id="onboardingOverlay" class="onboarding-overlay" aria-label="手機接線引導">
+    <div class="onboarding-card onboarding-intro">
+      <span class="eyebrow">第一次用 · 30 秒上手</span>
+      <h1>把手機接上 Mac，開始抓幀數</h1>
+      <p class="onboarding-tagline">選一張卡，照著做，做完按「進到 Lab」。Android 走 USB 偵錯，iPhone 走 pymobiledevice3 通道；iPhone 的錄製還在施工，本輪只做引導。</p>
+      <div class="onboarding-grid">
+        <article class="onboarding-platform" id="onboardingAndroid" data-platform="android">
+          <header>
+            <span class="platform-tag">ANDROID</span>
+            <h2>Android 手機</h2>
+            <p class="platform-summary">用 USB 偵錯線直接抓 FPS、CPU、GPU、PSS、耗電、溫度。</p>
+          </header>
+          <ol class="onboarding-steps" id="onboardingAndroidSteps">
+            <li data-step="developer-options">到「設定 → 關於手機」，對「版本號碼」連點 7 次，開出「開發人員選項」。</li>
+            <li data-step="usb-debugging">回「設定 → 系統 → 開發人員選項」，把「USB 偵錯」打開。</li>
+            <li data-step="plug-cable">用一條能傳資料的線（不要純充電線）把手機接上 Mac。</li>
+            <li data-step="allow-prompt">手機跳出「允許 USB 偵錯嗎？」時，按「允許」（可勾「一律允許這台電腦」）。</li>
+            <li data-step="adb-detected">右側狀態變「已連線」並出現序號，按「進到 Lab」開始錄製。</li>
+          </ol>
+          <div class="onboarding-status" id="onboardingAndroidStatus" data-state="checking">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div>
+              <strong class="status-title">狀態偵測中…</strong>
+              <p class="status-hint">讀取 adb 中，請稍等</p>
+            </div>
+          </div>
+        </article>
+        <article class="onboarding-platform" id="onboardingiOS" data-platform="ios">
+          <header>
+            <span class="platform-tag">iPHONE</span>
+            <h2>iPhone</h2>
+            <p class="platform-summary">iPhone 的錄製本輪尚未整合，這張卡先把通道準備好，之後採集會接上。</p>
+          </header>
+          <ol class="onboarding-steps" id="onboardingiOSSteps">
+            <li data-step="install-pmd">打開 macOS 終端機，跑一次：<code>brew install pipx && pipx ensurepath</code>（重開 shell）再 <code>pipx install pymobiledevice3</code>（安裝 iPhone 通道工具）。</li>
+            <li data-step="plug-cable">用 Lightning / USB-C 線把 iPhone 接上 Mac。</li>
+            <li data-step="trust">iPhone 跳出「信任這部電腦」，按「信任」並輸入螢幕密碼。</li>
+            <li data-step="developer-mode">iPhone 開「開發者模式」（設定 → 隱私與安全性 → 開發者模式）。</li>
+            <li data-step="tunneld">iOS 17 以上要再跑一次：<code>sudo pymobiledevice3 remote tunneld</code>，把那個終端機視窗保持開著。</li>
+            <li data-step="pmd-detected">右側狀態變「已偵測到 iPhone」，按「進到 Lab」（本輪 iPhone 只能預覽，不能錄製）。</li>
+          </ol>
+          <div class="onboarding-status" id="onboardingiOSStatus" data-state="checking">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div>
+              <strong class="status-title">狀態偵測中…</strong>
+              <p class="status-hint">讀取 pymobiledevice3 中，請稍等</p>
+            </div>
+          </div>
+        </article>
+      </div>
+      <footer class="onboarding-footer">
+        <button id="onboardingEnterLab" class="onboarding-enter" type="button">進到 Lab</button>
+        <button id="onboardingSkip" class="onboarding-skip" type="button" aria-label="略過引導，下次再開啟">先看看</button>
+        <span class="onboarding-meta" id="onboardingMeta">本機引導（onboarding）— 重新整理就會重跑</span>
+      </footer>
+    </div>
+  </section>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div><strong>3cdog Perf</strong><span>LOCAL PROFILER</span></div></div>
+    <nav class="view-tabs" role="tablist" aria-label="視圖切換">
+      <button id="overviewTab" class="active" role="tab" aria-selected="true" type="button">Overview</button>
+      <button id="fpsLabTab" role="tab" aria-selected="false" type="button">FPS Lab</button>
+    </nav>
+    <div class="record-clock" id="recordClock" data-active="false"><i></i><span>REC</span><strong id="recordTimer">00:00:00</strong></div>
+    <div class="connection" id="connection" data-state="idle"><i></i><span id="connectionText">等待 session</span></div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" aria-label="裝置、app 與 session">
+      <section class="control-panel panel" aria-label="Session controls">
+        <span class="section-label">TARGET</span>
+        <label class="field session-field"><span>SESSION / APP</span><select id="sessionSelect" aria-label="選擇 session"><option value="">掃描中…</option></select></label>
+        <button class="icon-button" id="refreshButton" type="button">↻ 重新掃描</button>
+        <div class="mode-switch" role="group" aria-label="模式"><button id="liveButton" class="active" type="button" aria-pressed="true">● LIVE</button><button id="replayButton" type="button" aria-pressed="false">▶ REPLAY</button></div>
+        <label class="field speed-field"><span>REPLAY SPEED</span><select id="speedSelect"><option value="0.5">0.5×</option><option selected value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+        <div class="export-row"><button class="export-button" id="csvButton" type="button" disabled>匯出 CSV</button><button class="export-button" id="jsonButton" type="button" disabled>匯出 JSON</button><button class="export-button" id="fpsSummaryButton" type="button" disabled>FPS Summary</button></div>
+      </section>
+
+      <section class="record-panel panel" aria-label="採集控制">
+        <span class="section-label">RECORD</span>
+        <div class="mode-switch" id="sourceSwitch" role="group" aria-label="裝置來源"><button id="sourceAndroid" class="active" type="button" aria-pressed="true">Android</button><button id="sourceiPhone" type="button" aria-pressed="false">iPhone</button></div>
+        <span class="record-state" id="sourceHint" style="font-size:9px;letter-spacing:.1em;">主流程：自動偵測前景 App</span>
+        <div class="record-row">
+          <button class="record-button record-start" id="recordStartButton" type="button" disabled>● 錄製</button>
+          <button class="record-button record-stop" id="recordStopButton" type="button" disabled>■ 停止</button>
+          <span class="record-state" id="recordState">待機</span>
+        </div>
+        <label class="field record-field"><span id="deviceLabel">DEVICE</span><select id="deviceSelect" aria-label="選擇裝置"><option value="">掃描中…</option></select></label>
+        <button class="icon-button" id="detectForegroundButton" type="button" title="主流程：按一次自動抓到 iPhone／Android 當前前景 App，不需手選 package">🎯 自動偵測前景 App</button>
+        <button class="icon-button" id="advancedToggle" type="button" aria-expanded="false" aria-controls="advancedBundlePanel">⚙ 進階手動選 App</button>
+        <div id="advancedBundlePanel" class="record-field" hidden>
+          <label class="field" style="padding:0;"><span id="packageLabel">PACKAGE</span><select id="packageSelect" aria-label="手動選擇 package"><option value="">自動偵測後由系統帶入</option></select></label>
+        </div>
+        <label class="field record-field"><span>INTERVAL (s)</span><input id="intervalInput" type="number" min="0.25" step="0.25" value="1"></label>
+        <div class="record-row" id="contributeRow" style="justify-content:flex-end;">
+          <button class="record-button" id="contributeButton" type="button" disabled title="即將推出：匿名貢獻到公開資料庫">📤 貢獻這筆</button>
+        </div>
+      </section>
+
+      <section class="identity-strip panel" aria-label="目前目標">
+        <span class="section-label">IDENTITY</span>
+        <div><span>DEVICE</span><strong id="deviceValue">—</strong></div>
+        <div><span>PACKAGE</span><strong id="packageValue">—</strong></div>
+        <div><span>SESSION</span><strong id="sessionValue">—</strong></div>
+        <div><span>ELAPSED</span><strong id="elapsedValue">00:00:00</strong></div>
+        <div class="status-cell"><span>STATUS</span><strong id="statusValue">NO DATA</strong></div>
+      </section>
+    </aside>
+
+    <section class="content">
+      <div id="alert" class="alert" role="status" hidden></div>
+
+      <section id="overviewView" class="view active" aria-label="Overview">
+        <section class="summary" aria-label="即時摘要">
+          <article><span>FPS</span><strong id="fpsNow">N/A</strong><small id="fpsReason">等待資料</small></article>
+          <article><span>CPU TOTAL</span><strong id="cpuNow">N/A</strong><small id="cpuReason">等待資料</small></article>
+          <article><span>GPU</span><strong id="gpuNow">N/A</strong><small id="gpuReason">等待資料</small></article>
+          <article><span>PSS</span><strong id="memNow">N/A</strong><small id="memReason">等待資料</small></article>
+          <article><span>POWER</span><strong id="powerNow">N/A</strong><small id="powerReason">等待資料</small></article>
+          <article><span>TEMP</span><strong id="tempNow">N/A</strong><small id="tempReason">等待資料</small></article>
+        </section>
+
+        <section class="charts" id="charts" aria-label="效能曲線">
+          <article class="chart-card wide" data-chart="frame"><header><div><span class="eyebrow">RENDERING</span><h2>FPS + Jank</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>fps</small></div><div class="legend"><span style="--c:#74f5c3">FPS</span><span style="--c:#ff9b73">Jank %</span></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+          <article class="chart-card wide" data-chart="cpu"><header><div><span class="eyebrow">PROCESSOR</span><h2>CPU total + per core</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>%</small></div><div class="legend" id="cpuLegend"></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+          <article class="chart-card" data-chart="gpu"><header><div><span class="eyebrow">GRAPHICS</span><h2>GPU work proxy</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>%</small></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+          <article class="chart-card" data-chart="memory"><header><div><span class="eyebrow">MEMORY</span><h2>PSS</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>MB</small></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+          <article class="chart-card" data-chart="power"><header><div><span class="eyebrow">BATTERY</span><h2>Battery-side net power</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>W</small></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+          <article class="chart-card" data-chart="temperature"><header><div><span class="eyebrow">THERMALS</span><h2>Temperature</h2></div><div class="instant"><span>NOW</span><strong data-instant>N/A</strong><small>°C</small></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p><p class="chart-detail" data-detail>等待資料</p></article>
+        </section>
+
+        <section class="timeline panel" aria-label="共享時間軸與重播範圍">
+          <button id="playButton" type="button" aria-label="播放或暫停">▶</button>
+          <div><span class="section-label">SHARED TIMELINE</span><input id="scrubber" type="range" min="0" max="0" value="0" aria-label="所有圖表的重播進度"></div>
+          <span id="timelineLabel">0 / 0 samples</span>
+        </section>
+      </section>
+
+      <section id="fpsLabView" class="view" aria-label="FPS Lab" hidden>
+        <section class="fps-summary" aria-label="FPS Lab summary">
+          <article class="fps-tile" data-tile="avg"><span>AVG FPS</span><strong id="fpsLabAvg">—</strong><small id="fpsLabAvgReason">等待資料</small></article>
+          <article class="fps-tile" data-tile="variance"><span>FPS VAR</span><strong id="fpsLabVar">—</strong><small id="fpsLabVarReason">—</small></article>
+          <article class="fps-tile" data-tile="jank"><span>JANK</span><strong id="fpsLabJank">—</strong><small id="fpsLabJankReason">—</small></article>
+          <article class="fps-tile" data-tile="bigjank"><span>BIGJANK</span><strong id="fpsLabBigJank">—</strong><small id="fpsLabBigJankReason">—</small></article>
+          <article class="fps-tile" data-tile="stutter"><span>STUTTER %</span><strong id="fpsLabStutter">—</strong><small id="fpsLabStutterReason">—</small></article>
+          <article class="fps-tile" data-tile="low"><span>1% LOW</span><strong id="fpsLabLow">—</strong><small id="fpsLabLowReason">—</small></article>
+          <article class="fps-tile" data-tile="drop"><span>DROP</span><strong id="fpsLabDrop">—</strong><small id="fpsLabDropReason">—</small></article>
+        </section>
+
+        <section class="fps-summary-extra" aria-label="FPS Lab 擴充指標">
+          <article class="fps-tile small"><span>MAX FPS</span><strong id="fpsLabMax">—</strong></article>
+          <article class="fps-tile small"><span>MIN FPS</span><strong id="fpsLabMin">—</strong></article>
+          <article class="fps-tile small"><span>0.1% LOW</span><strong id="fpsLabTenthLow">—</strong></article>
+          <article class="fps-tile small"><span>JANK / 10MIN</span><strong id="fpsLabJankPer10">—</strong></article>
+          <article class="fps-tile small"><span>BIGJANK / 10MIN</span><strong id="fpsLabBigJankPer10">—</strong></article>
+          <article class="fps-tile small"><span>FRAMES</span><strong id="fpsLabFrames">—</strong></article>
+          <article class="fps-tile small"><span>DURATION</span><strong id="fpsLabDuration">—</strong></article>
+        </section>
+
+        <div id="fpsLabAlert" class="fps-alert" role="status" hidden></div>
+
+        <section class="fps-charts" aria-label="FPS 視覺化">
+          <article class="chart-card wide" data-fps-chart="fps"><header><div><span class="eyebrow">RENDERING</span><h2>FPS 曲線 + Jank 點</h2></div><div class="legend"><span style="--c:#74f5c3">FPS</span><span style="--c:#ff9b73">Jank 幀</span><span style="--c:#ff86aa">Avg</span></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p></article>
+          <article class="chart-card wide" data-fps-chart="frametime"><header><div><span class="eyebrow">FRAME TIME</span><h2>FrameTime (ms)</h2></div><div class="legend"><span style="--c:#74f5c3">Frame ms</span><span style="--c:#ff9b73">83.33 ms 門檻</span><span style="--c:#ff86aa">125 ms 門檻</span></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p></article>
+          <article class="chart-card wide" data-fps-chart="histogram"><header><div><span class="eyebrow">DISTRIBUTION</span><h2>FrameTime 直方圖</h2></div><div class="instant"><span>BINS</span><strong id="fpsLabBins">40</strong></div></header><canvas></canvas><p class="empty">N/A · 等待資料</p></article>
+        </section>
+
+        <section class="fps-definitions panel" aria-label="指標定義">
+          <span class="section-label">DEFINITIONS · 本工具口徑</span>
+          <ul id="fpsLabDefinitions"></ul>
+        </section>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
