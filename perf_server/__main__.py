@@ -15,6 +15,7 @@ CLI surface and an automatic browser-open on macOS.
 from __future__ import annotations
 
 import argparse
+import errno
 import os
 import sys
 import threading
@@ -23,7 +24,7 @@ from typing import List, Optional
 from pathlib import Path
 
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 
 def _open_browser_when_ready(url: str, server_ref: list) -> None:
@@ -96,7 +97,40 @@ def _bootstrap_server(args: argparse.Namespace) -> int:
             file=sys.stderr,
             flush=True,
         )
-    httpd = server.make_server(args.host, args.port, sessions_dir)
+    try:
+        httpd = server.make_server(args.host, args.port, sessions_dir)
+    except OSError as exc:
+        # Only swallow EADDRINUSE — anything else (permission denied, bad
+        # address, ...) must propagate so we don't mask a real install bug.
+        if getattr(exc, "errno", None) != errno.EADDRINUSE:
+            raise
+        port = args.port
+        print(
+            "\n❌ port {} 被佔用，3cdog-perf 啟動失敗。".format(port),
+            file=sys.stderr,
+            flush=True,
+        )
+        print(
+            "通常是上一次啟動的 3cdog-perf 還沒關、或別的程式搶先佔住了這個 port。",
+            file=sys.stderr,
+            flush=True,
+        )
+        print(
+            "請把下面這一行整段貼到終端機跑（會找出佔用 port {} 的行程並關掉）：".format(port),
+            file=sys.stderr,
+            flush=True,
+        )
+        print(
+            "  lsof -ti :{} | xargs kill".format(port),
+            file=sys.stderr,
+            flush=True,
+        )
+        print(
+            "清完再重跑一次 `3cdog-perf` 就可以了。",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
 
     server_box: List[Optional[object]] = [httpd]
     if args.open_browser and sys.platform == "darwin" and os.environ.get("DISPLAY") is None:
