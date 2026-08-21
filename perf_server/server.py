@@ -517,12 +517,58 @@ def _ios_list_devices():
     Returns ``[{"serial": UDID, "state": "..."}, ...]`` — kept the same shape
     as Android's ``adb devices -l`` parser so the UI can reuse the
     ``deviceSelect`` widget across both platforms.
+
+    Newer pymobiledevice3 releases print a JSON array of device objects
+    (each carrying ``UniqueDeviceID`` / ``Identifier``, ``DeviceName``,
+    ``ProductType``, ...) instead of the older ``UDID : <udid> ConnectionType:
+    <type>`` text lines. We try JSON first and fall back to the legacy text
+    parser so both CLI vintages work.
     """
     stdout, error, returncode = _ios_invoke(["usbmux", "list"], timeout=3.0)
-    if error is not None:
+    if stdout is None:
+        # ``_ios_invoke`` only sets ``stdout`` to ``None`` on the
+        # FileNotFoundError / TimeoutExpired exception paths, where
+        # ``error`` carries a human-readable message. A normal completed
+        # process — even one with empty stderr and/or a non-zero exit code —
+        # returns ``stdout`` as a string (possibly ``""``), which must fall
+        # through to parsing below rather than being mistaken for a failure
+        # (stderr being "" is not None, so the old ``error is not None``
+        # check here used to bail out on every successful invocation).
         return [], error
+    if returncode:
+        # Process completed but reported failure (e.g. usbmuxd not running,
+        # permission denied) — surface the real reason so
+        # ``_detect_ios_state`` can route to its ``detect_failed`` branch
+        # instead of silently degrading to "no device", which would tell
+        # the user to replug a cable that was never the problem.
+        message = (error or "").strip() or "pymobiledevice3 exited with code {}".format(returncode)
+        return [], message
+    text = stdout or ""
+    stripped = text.strip()
+    if stripped.startswith("["):
+        try:
+            parsed = json.loads(stripped)
+        except (ValueError, TypeError):
+            parsed = None
+        if isinstance(parsed, list):
+            devices = []
+            for entry in parsed:
+                if not isinstance(entry, dict):
+                    continue
+                serial = entry.get("UniqueDeviceID") or entry.get("Identifier")
+                if not serial:
+                    continue
+                device = {"serial": serial, "state": "device"}
+                name = entry.get("DeviceName")
+                if name:
+                    device["name"] = name
+                product = entry.get("ProductType")
+                if product:
+                    device["product"] = product
+                devices.append(device)
+            return devices, None
     devices = []
-    for raw_line in (stdout or "").splitlines():
+    for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("=") or "UDID" not in line:
             continue
@@ -559,7 +605,15 @@ def _ios_foreground_bundle(serial):
     if serial:
         args.extend(["--udid", serial])
     stdout, error, returncode = _ios_invoke(args, timeout=6.0)
-    if error is not None:
+    if stdout is None:
+        # Same fix as ``_ios_list_devices``: ``error`` here is really
+        # ``_ios_invoke``'s stderr slot, which is ``""`` (not ``None``) on
+        # every completed process. The old ``error is not None`` check
+        # matched that empty string and bailed out on *every* invocation —
+        # including successful ones — before the ``returncode`` branch below
+        # (which already has the detailed tunnel/developer-mode/sysmon
+        # messaging) ever ran. Only the FileNotFoundError / TimeoutExpired
+        # exception paths set ``stdout`` to ``None``.
         return None, error
     if returncode:
         stderr_text = (error or "").strip() or "pymobiledevice3 developer dvt sysmon process single failed"
@@ -820,6 +874,12 @@ def reap_orphan_collectors() -> int:
 class PerfRequestHandler(BaseHTTPRequestHandler):
     server_version = "AndroidPerf/0.2"
 
+    # These two endpoints are polled on a tight interval by the onboarding
+    # wizard / record-status badge, so a healthy 2xx response would otherwise
+    # spam the console every second or two. Only successful GETs to exactly
+    # these paths are muted — errors and every other path still log.
+    _QUIET_GET_PATHS = ("/api/onboarding/state", "/api/record/status")
+
     @property
     def sessions_dir(self) -> Path:
         return self.server.sessions_dir  # type: ignore[attr-defined]
@@ -827,6 +887,25 @@ class PerfRequestHandler(BaseHTTPRequestHandler):
     @property
     def recorder(self) -> RecordController:
         return self.server.recorder  # type: ignore[attr-defined]
+
+    def log_request(self, code="-", size="-") -> None:  # noqa: N802 - stdlib hook
+        if isinstance(code, HTTPStatus):
+            code_value = code.value
+        else:
+            code_value = code
+        try:
+            status = int(code_value)
+        except (TypeError, ValueError):
+            status = None
+        path = urlparse(self.path).path if getattr(self, "path", None) else ""
+        if (
+            self.command == "GET"
+            and path in self._QUIET_GET_PATHS
+            and status is not None
+            and 200 <= status < 300
+        ):
+            return
+        super().log_request(code, size)
 
     def log_message(self, fmt: str, *args: object) -> None:
         print("[android-perf] {} - {}".format(self.address_string(), fmt % args))

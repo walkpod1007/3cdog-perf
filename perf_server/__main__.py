@@ -23,7 +23,7 @@ from typing import List, Optional
 from pathlib import Path
 
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 
 def _open_browser_when_ready(url: str, server_ref: list) -> None:

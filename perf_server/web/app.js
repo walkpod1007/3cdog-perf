@@ -102,6 +102,7 @@ const IOS_STEP_ORDER = [
   "trust",
   "developer-mode",
   "tunneld",
+  "tunneld-consent",
   "pmd-detected",
 ];
 

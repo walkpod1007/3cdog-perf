@@ -46,7 +46,8 @@
             <li data-step="plug-cable">用 Lightning / USB-C 線把 iPhone 接上 Mac。</li>
             <li data-step="trust">iPhone 跳出「信任這部電腦」，按「信任」並輸入螢幕密碼。</li>
             <li data-step="developer-mode">iPhone 開「開發者模式」（設定 → 隱私與安全性 → 開發者模式）。</li>
-            <li data-step="tunneld">iOS 17 以上要再跑一次：<code>sudo pymobiledevice3 remote tunneld</code>，把那個終端機視窗保持開著。</li>
+            <li data-step="tunneld">iPhone 是 iOS 17 以上的話：<strong>再開一個新的終端機視窗</strong>（Cmd+N），貼上 <code>sudo pymobiledevice3 remote tunneld</code> 按 Enter。它會要你輸入 <strong>Mac 的登入密碼</strong>（打字時畫面不會顯示，正常，打完按 Enter）。跳出一串連線訊息＝通道建好了，這個視窗<strong>縮小放旁邊、不要關</strong>。</li>
+            <li data-step="tunneld-consent">tunneld 跑起來後，<strong>iPhone 螢幕會「再」跳一次配對確認</strong>——回到手機上按「信任／允許」並輸入解鎖密碼（終端機那邊卡在 <code>Waiting user pairing consent</code> 就是在等這個）。</li>
             <li data-step="pmd-detected">右側狀態變「已偵測到 iPhone」，按「進到 Lab」（本輪 iPhone 只能預覽，不能錄製）。</li>
           </ol>
           <div class="onboarding-status" id="onboardingiOSStatus" data-state="checking">
