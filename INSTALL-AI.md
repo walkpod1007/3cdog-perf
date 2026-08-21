@@ -10,7 +10,7 @@
 ## 0. 摘要（給你看的 TL;DR）
 
 - 套件名：`3cdog-perf`
-- 裝法：Homebrew + 公開 tap（`brew tap walkpod1007/3cdog && brew install 3cdog-perf`，或簡寫 `brew install walkpod1007/3cdog/3cdog-perf`）
+- 裝法：Homebrew + 公開 tap（`brew tap walkpod1007/3cdog `brew tap walkpod1007/3cdog && brew install 3cdog-perf`，或簡寫 `brew install walkpod1007/3cdog/3cdog-perf``brew tap walkpod1007/3cdog && brew install 3cdog-perf`，或簡寫 `brew install walkpod1007/3cdog/3cdog-perf` brew install perf-lab`，或簡寫 `brew install walkpod1007/3cdog/perf-lab`；裝完的指令名仍是 `3cdog-perf`）
 - 啟動：`3cdog-perf`，瀏覽器會自動打開 `http://127.0.0.1:8765`
 - 失敗模式：八成是「線只能充電不能傳資料」或「Android 沒開 USB 偵錯」
 
@@ -48,7 +48,7 @@ brew --version       # Homebrew 版本
 **我要做什麼**：在終端機跑下面這一條，**不要修改**。
 
 ```bash
-brew tap walkpod1007/3cdog && brew install 3cdog-perf
+brew tap walkpod1007/3cdog && brew install perf-lab
 ```
 
 跑完會輸出像：

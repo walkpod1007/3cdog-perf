@@ -19,7 +19,7 @@ iPhone 的錄製本輪**還沒接上**——這版只能顯示 iPhone 是否接�
 打開「終端機」App（Spotlight 搜「Terminal」），貼這行：
 
 ```bash
-brew tap walkpod1007/3cdog && brew install 3cdog-perf && 3cdog-perf
+brew tap walkpod1007/3cdog && brew install perf-lab && 3cdog-perf
 ```
 
 跑完會自動打開瀏覽器。如果瀏覽器沒自動跳，把 `http://127.0.0.1:8765`
