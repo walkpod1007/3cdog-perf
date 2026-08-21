@@ -210,8 +210,8 @@ head -3 ~/.3cdog-perf/sessions/<session-id>.jsonl
 ## 6. 升級 / 解除安裝
 
 ```bash
-brew upgrade 3cdog-perf         # 升級
-brew uninstall 3cdog-perf       # 解除安裝（session 資料會留在 ~/.3cdog-perf/）
+brew upgrade perf-lab         # 升級
+brew uninstall perf-lab       # 解除安裝（session 資料會留在 ~/.3cdog-perf/）
 rm -rf ~/.3cdog-perf            # 連 session 一起清掉
 ```
 
